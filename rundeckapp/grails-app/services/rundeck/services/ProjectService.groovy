@@ -77,6 +77,7 @@ class ProjectService implements InitializingBean, ExecutionFileProducer, EventPu
     def authorizationService
     def scmService
     def executionUtilService
+    def webhookService
     static transactional = false
 
     static Logger projectLogger = Logger.getLogger("org.rundeck.project.events")
@@ -1489,6 +1490,8 @@ class ProjectService implements InitializingBean, ExecutionFileProducer, EventPu
 
 
                 fileUploadService.deleteRecordsForProject(project.name)
+
+                webhookService.deleteWebhooksForProject(project.name)
 
                 log.debug("${other} other executions deleted")
 

@@ -34,6 +34,11 @@ import rundeck.ScheduledExecution
 import rundeck.Workflow
 import rundeck.services.authorization.PoliciesValidation
 import spock.lang.Specification
+<<<<<<< HEAD
+=======
+import webhooks.WebhookService
+import webhooks.importer.WebhooksProjectImporter
+>>>>>>> 7ff912d215... Fixes #5611. Delete all webhooks in project when project is deleted.
 
 /**
  * Created by greg on 8/5/15.
@@ -283,6 +288,7 @@ class ProjectServiceSpec extends Specification {
         service.scmService = Mock(ScmService)
         service.executionService = Mock(ExecutionService)
         service.fileUploadService = Mock(FileUploadService)
+        service.webhookService = Mock(WebhookService)
         def fwk = Mock(Framework)
 
         when:
@@ -308,6 +314,7 @@ class ProjectServiceSpec extends Specification {
             service.scmService = Mock(ScmService)
             service.executionService = Mock(ExecutionService)
             service.fileUploadService = Mock(FileUploadService)
+            service.webhookService = Mock(WebhookService)
             service.targetEventBus = Mock(EventBus)
             def fwk = Mock(Framework)
 
@@ -329,6 +336,7 @@ class ProjectServiceSpec extends Specification {
             }
             service.scmService = Mock(ScmService)
             service.executionService = Mock(ExecutionService)
+            service.webhookService = Mock(WebhookService)
             service.fileUploadService = Mock(FileUploadService){
                 deleteRecordsForProject(_)>>{throw new Exception("test exception")}
             }
@@ -344,4 +352,67 @@ class ProjectServiceSpec extends Specification {
             0 * fwk.getFrameworkProjectMgr()
             !result.success
     }
+<<<<<<< HEAD
+=======
+    def "delete project calls webhookService deleteWebhooksForProject"() {
+        given:
+        def project = Mock(IRundeckProject) {
+            getName() >> 'myproject'
+        }
+        service.scmService = Mock(ScmService)
+        service.executionService = Mock(ExecutionService)
+        service.fileUploadService = Mock(FileUploadService)
+        service.webhookService = Mock(WebhookService)
+        service.targetEventBus = Mock(EventBus)
+
+        def prjMgr = Mock(ProjectManager) {
+            removeFrameworkProject(_) >> {}
+        }
+        def fwk = Mock(Framework) {
+            getFrameworkProjectMgr() >> { prjMgr }
+        }
+
+        when:
+        service.deleteProject(project, fwk, null, null)
+
+        then:
+        1 * service.webhookService.deleteWebhooksForProject('myproject')
+    }
+
+    def "import project archive does not fail when webhooks are enabled but project archive has no webhook defs"() {
+        setup:
+        defineBeans {
+            webhookImporter(WebhooksProjectImporter)
+        }
+        def project = Mock(IRundeckProject) {
+            getName() >> 'importtest'
+        }
+        def framework = Mock(Framework) {
+            getFrameworkProjectsBaseDir() >> { File.createTempDir() }
+        }
+        def authCtx = Mock(UserAndRolesAuthContext) {
+            getUsername() >> {"user"}
+            getRoles() >> {["admin"] as Set}
+        }
+        service.scheduledExecutionService = Mock(ScheduledExecutionService) {
+            loadJobs(_,_,_,_,_,_) >> { [] }
+            issueJobChangeEvent(_) >> {}
+        }
+        service.logFileStorageService = Mock(LogFileStorageService) {
+            getFileForExecutionFiletype(_,_,_,_) >> { File.createTempFile("import","import") }
+        }
+        ProjectArchiveParams rq = new ProjectArchiveParams()
+        rq.project = "importtest"
+        rq.importConfig = true
+        rq.importACL = true
+        rq.importScm = true
+        rq.importWebhooks=true
+
+        when:
+        def result = service.importToProject(project,framework,authCtx, getClass().getClassLoader().getResourceAsStream("test-rdproject.jar"),rq)
+
+        then:
+        result
+    }
+>>>>>>> 7ff912d215... Fixes #5611. Delete all webhooks in project when project is deleted.
 }
